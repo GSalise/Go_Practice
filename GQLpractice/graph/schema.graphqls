@@ -1,0 +1,28 @@
+enum CliqueType {
+  KOOKS
+  POGUES
+}
+
+type Character {
+  id: ID!
+  name: String!
+  isHero: Boolean!
+  cliqueType: CliqueType!
+}
+
+input CharacterInput {
+  name: String!
+  id: String
+  isHero: Boolean
+  cliqueType: CliqueType!
+}
+
+type Query {
+  character(id:ID!): Character
+  pogues: [Character]!
+  kooks: [Character]!
+}
+
+type Mutation {
+  upsertCharacter(input: CharacterInput!): Character!
+}
