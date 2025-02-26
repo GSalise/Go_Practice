@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/GSalise/GQLPractice/graph/model"
-
 	"github.com/google/uuid"
 )
 
@@ -126,7 +125,6 @@ func (r *queryResolver) Pogues(ctx context.Context) ([]*model.Character, error) 
 	}
 
 	return pogues, nil
-
 }
 
 // Kooks is the resolver for the kooks field.
@@ -160,6 +158,38 @@ func (r *queryResolver) Kooks(ctx context.Context) ([]*model.Character, error) {
 	}
 
 	return kooks, nil
+}
+
+// AllCharacters is the resolver for the allCharacters field.
+func (r *queryResolver) AllCharacters(ctx context.Context) ([]*model.Character, error) {
+	var characters []*model.Character
+
+	rows, err := r.DB.Query(ctx, `
+		SELECT *
+		FROM characters
+	`)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch characters: %v", err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var character model.Character
+		err := rows.Scan(&character.ID, &character.Name, &character.IsHero, &character.CliqueType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan character: %v", err)
+		}
+
+		characters = append(characters, &character)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error inserting rows: %v", err)
+	}
+
+	return characters, nil
 }
 
 // Mutation returns MutationResolver implementation.

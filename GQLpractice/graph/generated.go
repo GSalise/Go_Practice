@@ -59,9 +59,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Character func(childComplexity int, id string) int
-		Kooks     func(childComplexity int) int
-		Pogues    func(childComplexity int) int
+		AllCharacters func(childComplexity int) int
+		Character     func(childComplexity int, id string) int
+		Kooks         func(childComplexity int) int
+		Pogues        func(childComplexity int) int
 	}
 }
 
@@ -72,6 +73,7 @@ type QueryResolver interface {
 	Character(ctx context.Context, id string) (*model.Character, error)
 	Pogues(ctx context.Context) ([]*model.Character, error)
 	Kooks(ctx context.Context) ([]*model.Character, error)
+	AllCharacters(ctx context.Context) ([]*model.Character, error)
 }
 
 type executableSchema struct {
@@ -132,6 +134,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpsertCharacter(childComplexity, args["input"].(model.CharacterInput)), true
+
+	case "Query.allCharacters":
+		if e.complexity.Query.AllCharacters == nil {
+			break
+		}
+
+		return e.complexity.Query.AllCharacters(childComplexity), true
 
 	case "Query.character":
 		if e.complexity.Query.Character == nil {
@@ -842,6 +851,60 @@ func (ec *executionContext) _Query_kooks(ctx context.Context, field graphql.Coll
 }
 
 func (ec *executionContext) fieldContext_Query_kooks(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Character_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Character_name(ctx, field)
+			case "isHero":
+				return ec.fieldContext_Character_isHero(ctx, field)
+			case "cliqueType":
+				return ec.fieldContext_Character_cliqueType(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Character", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allCharacters(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_allCharacters(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().AllCharacters(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Character)
+	fc.Result = res
+	return ec.marshalNCharacter2ᚕᚖgithubᚗcomᚋGSaliseᚋGQLPracticeᚋgraphᚋmodelᚐCharacter(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_allCharacters(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -3175,6 +3238,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_kooks(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "allCharacters":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allCharacters(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
