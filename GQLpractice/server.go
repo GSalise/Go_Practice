@@ -7,11 +7,13 @@ import (
 	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/GSalise/GQLPractice/db"
 	"github.com/GSalise/GQLPractice/graph"
 	"github.com/GSalise/GQLPractice/graph/model"
 	"github.com/go-chi/chi"
+	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 )
 
@@ -37,9 +39,19 @@ func main() {
 	}
 
 	// Set up the GraphQL server
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 	//srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	srv.AddTransport(&transport.Websocket{
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				// Allow all origins for development
+				return true
+			},
+		},
+	})
 
+	// Enable HTTP transport
+	srv.AddTransport(transport.POST{})
 	// Use Chi router for better middleware support
 	router := chi.NewRouter()
 
